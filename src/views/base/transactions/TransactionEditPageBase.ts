@@ -1,51 +1,43 @@
-import { ref, computed, watch } from 'vue';
+import {computed, ref, watch} from 'vue';
 
-import { useI18n } from '@/locales/helpers.ts';
+import {useI18n} from '@/locales/helpers.ts';
 
-import { useSettingsStore } from '@/stores/setting.ts';
-import { useUserStore } from '@/stores/user.ts';
-import { useAccountsStore } from '@/stores/account.ts';
-import { useTransactionCategoriesStore } from '@/stores/transactionCategory.ts';
-import { useTransactionTagsStore } from '@/stores/transactionTag.ts';
-import { useTransactionsStore } from '@/stores/transaction.ts';
-import { useExchangeRatesStore } from '@/stores/exchangeRates.ts';
+import {useSettingsStore} from '@/stores/setting.ts';
+import {useUserStore} from '@/stores/user.ts';
+import {useAccountsStore} from '@/stores/account.ts';
+import {useTransactionCategoriesStore} from '@/stores/transactionCategory.ts';
+import {useTransactionTagsStore} from '@/stores/transactionTag.ts';
+import {useTransactionsStore} from '@/stores/transaction.ts';
+import {useExchangeRatesStore} from '@/stores/exchangeRates.ts';
 
-import type { NumeralSystem } from '@/core/numeral.ts';
-import type { WeekDayValue } from '@/core/datetime.ts';
-import type { LocalizedTimezoneInfo } from '@/core/timezone.ts';
-import { TransactionType } from '@/core/transaction.ts';
-import { TemplateType } from '@/core/template.ts';
-import { DISPLAY_HIDDEN_AMOUNT } from '@/consts/numeral.ts';
-import { TRANSACTION_MAX_PICTURE_COUNT } from '@/consts/transaction.ts';
+import type {NumeralSystem} from '@/core/numeral.ts';
+import type {WeekDayValue} from '@/core/datetime.ts';
+import type {LocalizedTimezoneInfo} from '@/core/timezone.ts';
+import {TransactionType} from '@/core/transaction.ts';
+import {TemplateType} from '@/core/template.ts';
+import {DISPLAY_HIDDEN_AMOUNT} from '@/consts/numeral.ts';
+import {TRANSACTION_MAX_PICTURE_COUNT} from '@/consts/transaction.ts';
 
-import { Account, type CategorizedAccountWithDisplayBalance } from '@/models/account.ts';
-import type { TransactionCategory } from '@/models/transaction_category.ts';
-import type { TransactionTag } from '@/models/transaction_tag.ts';
-import type { TransactionPictureInfoBasicResponse } from '@/models/transaction_picture_info.ts';
-import { Transaction } from '@/models/transaction.ts';
-import { TransactionTemplate } from '@/models/transaction_template.ts';
+import {Account, type CategorizedAccountWithDisplayBalance} from '@/models/account.ts';
+import type {TransactionCategory} from '@/models/transaction_category.ts';
+import type {TransactionTag} from '@/models/transaction_tag.ts';
+import type {TransactionPictureInfoBasicResponse} from '@/models/transaction_picture_info.ts';
+import {Transaction} from '@/models/transaction.ts';
+import {TransactionTemplate} from '@/models/transaction_template.ts';
 
-import {
-    isArray,
-    isDefined
-} from '@/lib/common.ts';
+import {isArray, isDefined} from '@/lib/common.ts';
 
-import {
-    getExchangedAmountByRate
-} from '@/lib/numeral.ts';
+import {getExchangedAmountByRate} from '@/lib/numeral.ts';
 
 import {
-    getUtcOffsetByUtcOffsetMinutes,
-    getTimezoneOffsetMinutes,
+    getCurrentUnixTime,
     getSameDateTimeWithCurrentTimezone,
-    parseDateTimeFromUnixTimeWithBrowserTimezone,
-    getCurrentUnixTime
+    getTimezoneOffsetMinutes,
+    getUtcOffsetByUtcOffsetMinutes,
+    parseDateTimeFromUnixTimeWithBrowserTimezone
 } from '@/lib/datetime.ts';
 
-import {
-    type SetTransactionOptions,
-    setTransactionModelByTransaction
-} from '@/lib/transaction.ts';
+import {setTransactionModelByTransaction, type SetTransactionOptions} from '@/lib/transaction.ts';
 
 export enum TransactionEditPageType {
     Transaction = 'transaction',
@@ -185,6 +177,8 @@ export function useTransactionEditPageBase(type: TransactionEditPageType, initMo
             return 'Income Amount';
         } else if (transaction.value.type === TransactionType.Transfer) {
             return 'Transfer Out Amount';
+        } else if (transaction.value.type === TransactionType.ModifyBalance) {
+            return 'New Balance';
         } else {
             return 'Amount';
         }
@@ -222,6 +216,8 @@ export function useTransactionEditPageBase(type: TransactionEditPageType, initMo
             return 'Account';
         } else if (transaction.value.type === TransactionType.Transfer) {
             return 'Source Account';
+        } else if (transaction.value.type === TransactionType.ModifyBalance) {
+            return 'Account';
         } else {
             return 'Account';
         }
@@ -330,6 +326,10 @@ export function useTransactionEditPageBase(type: TransactionEditPageType, initMo
             if (!transaction.value.destinationAccountId || transaction.value.destinationAccountId === '') {
                 return 'Destination account cannot be blank';
             }
+        } else if (transaction.value.type === TransactionType.ModifyBalance) {
+            if (!transaction.value.sourceAccountId || transaction.value.sourceAccountId === '') {
+                return 'Transaction account cannot be blank';
+            }
         }
 
         if (type === TransactionEditPageType.Template && transaction.value instanceof TransactionTemplate) {
@@ -353,9 +353,11 @@ export function useTransactionEditPageBase(type: TransactionEditPageType, initMo
         const now: number = getCurrentUnixTimeForNewTransaction();
         const currentTimezone: string = settingsStore.appSettings.timeZone;
 
-        let defaultType: TransactionType = TransactionType.Expense;
+        let defaultType: TransactionType = TransactionType.ModifyBalance;
 
-        if (transactionType === TransactionType.Income) {
+        if (transactionType === TransactionType.Expense) {
+            defaultType = TransactionType.Expense;
+        } else if (transactionType === TransactionType.Income) {
             defaultType = TransactionType.Income;
         } else if (transactionType === TransactionType.Transfer) {
             defaultType = TransactionType.Transfer;

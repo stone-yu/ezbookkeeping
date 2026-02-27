@@ -11,20 +11,19 @@
 
         <f7-block :class="{ 'no-margin-top margin-bottom': true, 'disabled': loading }">
             <f7-segmented strong round :class="{ 'readonly': pageTypeAndMode?.type === TransactionEditPageType.Transaction && mode !== TransactionEditPageMode.Add }">
+                <f7-button round :text="tt('Modify Balance')" :active="transaction.type === TransactionType.ModifyBalance"
+                           :disabled="pageTypeAndMode?.type === TransactionEditPageType.Transaction && mode !== TransactionEditPageMode.Add && transaction.type !== TransactionType.ModifyBalance"
+                           v-if="pageTypeAndMode?.type === TransactionEditPageType.Transaction"
+                           @click="transaction.type = TransactionType.ModifyBalance"></f7-button>
                 <f7-button round :text="tt('Expense')" :active="transaction.type === TransactionType.Expense"
                            :disabled="pageTypeAndMode?.type === TransactionEditPageType.Transaction && mode !== TransactionEditPageMode.Add && transaction.type !== TransactionType.Expense"
-                           v-if="transaction.type !== TransactionType.ModifyBalance"
                            @click="transaction.type = TransactionType.Expense"></f7-button>
                 <f7-button round :text="tt('Income')" :active="transaction.type === TransactionType.Income"
                            :disabled="pageTypeAndMode?.type === TransactionEditPageType.Transaction && mode !== TransactionEditPageMode.Add && transaction.type !== TransactionType.Income"
-                           v-if="transaction.type !== TransactionType.ModifyBalance"
                            @click="transaction.type = TransactionType.Income"></f7-button>
                 <f7-button round :text="tt('Transfer')" :active="transaction.type === TransactionType.Transfer"
                            :disabled="pageTypeAndMode?.type === TransactionEditPageType.Transaction && mode !== TransactionEditPageMode.Add && transaction.type !== TransactionType.Transfer"
-                           v-if="transaction.type !== TransactionType.ModifyBalance"
                            @click="transaction.type = TransactionType.Transfer"></f7-button>
-                <f7-button round :text="tt('Modify Balance')" :active="transaction.type === TransactionType.ModifyBalance"
-                           v-if="pageTypeAndMode?.type === TransactionEditPageType.Transaction && transaction.type === TransactionType.ModifyBalance"></f7-button>
             </f7-segmented>
         </f7-block>
 
@@ -32,7 +31,7 @@
             <f7-list-input label="Template Name" placeholder="Template Name" v-if="pageTypeAndMode?.type === TransactionEditPageType.Template"></f7-list-input>
             <f7-list-item
                 class="transaction-edit-amount ebk-large-amount"
-                header="Expense Amount" title="0.00">
+                :header="tt(sourceAmountName)" title="0.00">
             </f7-list-item>
             <f7-list-item class="list-item-with-header-and-title list-item-title-hide-overflow" header="Category" title="Category Names" v-if="transaction.type !== TransactionType.ModifyBalance"></f7-list-item>
             <f7-list-item class="list-item-with-header-and-title" header="Account" title="Account Name"></f7-list-item>
@@ -484,46 +483,46 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, useTemplateRef } from 'vue';
-import type { PhotoBrowser, Router } from 'framework7/types';
+import {computed, ref, useTemplateRef} from 'vue';
+import type {PhotoBrowser, Router} from 'framework7/types';
 
-import { useI18n } from '@/locales/helpers.ts';
-import { useI18nUIComponents, isiOS, showLoading, hideLoading } from '@/lib/ui/mobile.ts';
+import {useI18n} from '@/locales/helpers.ts';
+import {hideLoading, isiOS, showLoading, useI18nUIComponents} from '@/lib/ui/mobile.ts';
 import {
+    GeoLocationStatus,
     TransactionEditPageMode,
     TransactionEditPageType,
-    GeoLocationStatus,
     useTransactionEditPageBase
 } from '@/views/base/transactions/TransactionEditPageBase.ts';
 
-import { useSettingsStore } from '@/stores/setting.ts';
-import { useUserStore } from '@/stores/user.ts';
-import { useAccountsStore } from '@/stores/account.ts';
-import { useTransactionCategoriesStore } from '@/stores/transactionCategory.ts';
-import { useTransactionTagsStore } from '@/stores/transactionTag.ts';
-import { useTransactionsStore } from '@/stores/transaction.ts';
-import { useTransactionTemplatesStore } from '@/stores/transactionTemplate.ts';
+import {useSettingsStore} from '@/stores/setting.ts';
+import {useUserStore} from '@/stores/user.ts';
+import {useAccountsStore} from '@/stores/account.ts';
+import {useTransactionCategoriesStore} from '@/stores/transactionCategory.ts';
+import {useTransactionTagsStore} from '@/stores/transactionTag.ts';
+import {useTransactionsStore} from '@/stores/transaction.ts';
+import {useTransactionTemplatesStore} from '@/stores/transactionTemplate.ts';
 
-import { CategoryType } from '@/core/category.ts';
-import { TransactionEditScopeType, TransactionType } from '@/core/transaction.ts';
-import { ScheduledTemplateFrequencyType, TemplateType } from '@/core/template.ts';
-import { TRANSACTION_MAX_AMOUNT, TRANSACTION_MIN_AMOUNT } from '@/consts/transaction.ts';
-import { KnownErrorCode } from '@/consts/api.ts';
-import { SUPPORTED_IMAGE_EXTENSIONS } from '@/consts/file.ts';
+import {CategoryType} from '@/core/category.ts';
+import {TransactionEditScopeType, TransactionType} from '@/core/transaction.ts';
+import {ScheduledTemplateFrequencyType, TemplateType} from '@/core/template.ts';
+import {TRANSACTION_MAX_AMOUNT, TRANSACTION_MIN_AMOUNT} from '@/consts/transaction.ts';
+import {KnownErrorCode} from '@/consts/api.ts';
+import {SUPPORTED_IMAGE_EXTENSIONS} from '@/consts/file.ts';
 
-import { TransactionTemplate } from '@/models/transaction_template.ts';
-import type { TransactionPictureInfoBasicResponse } from '@/models/transaction_picture_info.ts';
-import { Transaction } from '@/models/transaction.ts';
+import {TransactionTemplate} from '@/models/transaction_template.ts';
+import type {TransactionPictureInfoBasicResponse} from '@/models/transaction_picture_info.ts';
+import {Transaction} from '@/models/transaction.ts';
 
 import {
     getTimezoneOffset,
     getTimezoneOffsetMinutes,
     parseDateTimeFromUnixTimeWithTimezoneOffset
 } from '@/lib/datetime.ts';
-import { formatCoordinate } from '@/lib/coordinate.ts';
-import { generateRandomUUID } from '@/lib/misc.ts';
-import { getTransactionPrimaryCategoryName, getTransactionSecondaryCategoryName } from '@/lib/category.ts';
-import { getMapProvider, isTransactionPicturesEnabled } from '@/lib/server_settings.ts';
+import {formatCoordinate} from '@/lib/coordinate.ts';
+import {generateRandomUUID} from '@/lib/misc.ts';
+import {getTransactionPrimaryCategoryName, getTransactionSecondaryCategoryName} from '@/lib/category.ts';
+import {getMapProvider, isTransactionPicturesEnabled} from '@/lib/server_settings.ts';
 import logger from '@/lib/logger.ts';
 
 const props = defineProps<{
@@ -575,6 +574,7 @@ const {
     canAddTransactionPicture,
     title,
     saveButtonTitle,
+    sourceAmountName,
     sourceAmountTitle,
     sourceAccountTitle,
     transferInAmountTitle,
@@ -636,7 +636,7 @@ const sourceAmountClass = computed<Record<string, boolean>>(() => {
         'readonly': mode.value === TransactionEditPageMode.View,
         'text-expense': transaction.value.type === TransactionType.Expense,
         'text-income': transaction.value.type === TransactionType.Income,
-        'text-color-primary': transaction.value.type === TransactionType.Transfer
+        'text-color-primary': transaction.value.type === TransactionType.Transfer || transaction.value.type === TransactionType.ModifyBalance
     };
 
     classes[getFontClassByAmount(transaction.value.sourceAmount)] = true;
@@ -882,8 +882,7 @@ function init(): void {
         queryType <= TransactionType.Transfer) {
         transaction.value.type = queryType;
     } else if (queryType === TransactionType.ModifyBalance &&
-        pageTypeAndMode.type === TransactionEditPageType.Transaction &&
-        mode.value === TransactionEditPageMode.View) {
+        pageTypeAndMode.type === TransactionEditPageType.Transaction) {
         transaction.value.type = queryType;
     }
 

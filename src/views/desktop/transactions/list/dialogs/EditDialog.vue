@@ -54,17 +54,17 @@
                 <div class="mb-4">
                     <v-tabs class="v-tabs-pill" direction="vertical" :class="{ 'readonly': type === TransactionEditPageType.Transaction && mode !== TransactionEditPageMode.Add }"
                             :disabled="loading || submitting" v-model="transaction.type">
-                        <v-tab :value="TransactionType.Expense" :disabled="type === TransactionEditPageType.Transaction && mode !== TransactionEditPageMode.Add && transaction.type !== TransactionType.Expense" v-if="transaction.type !== TransactionType.ModifyBalance">
+                        <v-tab :value="TransactionType.ModifyBalance" :disabled="type === TransactionEditPageType.Transaction && mode !== TransactionEditPageMode.Add && transaction.type !== TransactionType.ModifyBalance" v-if="type === TransactionEditPageType.Transaction">
+                            <span>{{ tt('Modify Balance') }}</span>
+                        </v-tab>
+                        <v-tab :value="TransactionType.Expense" :disabled="type === TransactionEditPageType.Transaction && mode !== TransactionEditPageMode.Add && transaction.type !== TransactionType.Expense">
                             <span>{{ tt('Expense') }}</span>
                         </v-tab>
-                        <v-tab :value="TransactionType.Income" :disabled="type === TransactionEditPageType.Transaction && mode !== TransactionEditPageMode.Add && transaction.type !== TransactionType.Income" v-if="transaction.type !== TransactionType.ModifyBalance">
+                        <v-tab :value="TransactionType.Income" :disabled="type === TransactionEditPageType.Transaction && mode !== TransactionEditPageMode.Add && transaction.type !== TransactionType.Income">
                             <span>{{ tt('Income') }}</span>
                         </v-tab>
-                        <v-tab :value="TransactionType.Transfer" :disabled="type === TransactionEditPageType.Transaction && mode !== TransactionEditPageMode.Add && transaction.type !== TransactionType.Transfer" v-if="transaction.type !== TransactionType.ModifyBalance">
+                        <v-tab :value="TransactionType.Transfer" :disabled="type === TransactionEditPageType.Transaction && mode !== TransactionEditPageMode.Add && transaction.type !== TransactionType.Transfer">
                             <span>{{ tt('Transfer') }}</span>
-                        </v-tab>
-                        <v-tab :value="TransactionType.ModifyBalance" v-if="type === TransactionEditPageType.Transaction && transaction.type === TransactionType.ModifyBalance">
-                            <span>{{ tt('Modify Balance') }}</span>
                         </v-tab>
                     </v-tabs>
                     <v-divider class="my-2"/>
@@ -467,66 +467,55 @@ import MapView from '@/components/common/MapView.vue';
 import ConfirmDialog from '@/components/desktop/ConfirmDialog.vue';
 import SnackBar from '@/components/desktop/SnackBar.vue';
 
-import { ref, computed, useTemplateRef, watch, nextTick } from 'vue';
+import {computed, nextTick, ref, useTemplateRef, watch} from 'vue';
 
-import { useI18n } from '@/locales/helpers.ts';
+import {useI18n} from '@/locales/helpers.ts';
 import {
+    GeoLocationStatus,
     TransactionEditPageMode,
     TransactionEditPageType,
-    GeoLocationStatus,
     useTransactionEditPageBase
 } from '@/views/base/transactions/TransactionEditPageBase.ts';
 
-import { useSettingsStore } from '@/stores/setting.ts';
-import { useUserStore } from '@/stores/user.ts';
-import { useAccountsStore } from '@/stores/account.ts';
-import { useTransactionCategoriesStore } from '@/stores/transactionCategory.ts';
-import { useTransactionTagsStore } from '@/stores/transactionTag.ts';
-import { useTransactionsStore } from '@/stores/transaction.ts';
-import { useTransactionTemplatesStore } from '@/stores/transactionTemplate.ts';
+import {useSettingsStore} from '@/stores/setting.ts';
+import {useUserStore} from '@/stores/user.ts';
+import {useAccountsStore} from '@/stores/account.ts';
+import {useTransactionCategoriesStore} from '@/stores/transactionCategory.ts';
+import {useTransactionTagsStore} from '@/stores/transactionTag.ts';
+import {useTransactionsStore} from '@/stores/transaction.ts';
+import {useTransactionTemplatesStore} from '@/stores/transactionTemplate.ts';
 
-import type { Coordinate } from '@/core/coordinate.ts';
-import { CategoryType } from '@/core/category.ts';
-import { TransactionType, TransactionEditScopeType } from '@/core/transaction.ts';
-import { TemplateType, ScheduledTemplateFrequencyType } from '@/core/template.ts';
-import { KnownErrorCode } from '@/consts/api.ts';
-import { SUPPORTED_IMAGE_EXTENSIONS } from '@/consts/file.ts';
+import type {Coordinate} from '@/core/coordinate.ts';
+import {CategoryType} from '@/core/category.ts';
+import {TransactionEditScopeType, TransactionType} from '@/core/transaction.ts';
+import {ScheduledTemplateFrequencyType, TemplateType} from '@/core/template.ts';
+import {KnownErrorCode} from '@/consts/api.ts';
+import {SUPPORTED_IMAGE_EXTENSIONS} from '@/consts/file.ts';
 
-import { TransactionTemplate } from '@/models/transaction_template.ts';
-import type { TransactionPictureInfoBasicResponse } from '@/models/transaction_picture_info.ts';
-import { Transaction } from '@/models/transaction.ts';
+import {TransactionTemplate} from '@/models/transaction_template.ts';
+import type {TransactionPictureInfoBasicResponse} from '@/models/transaction_picture_info.ts';
+import {Transaction} from '@/models/transaction.ts';
 
-import {
-    getTimezoneOffsetMinutes,
-    getCurrentUnixTime
-} from '@/lib/datetime.ts';
-import { formatCoordinate } from '@/lib/coordinate.ts';
-import { generateRandomUUID } from '@/lib/misc.ts';
-import {
-    getTransactionPrimaryCategoryName,
-    getTransactionSecondaryCategoryName
-} from '@/lib/category.ts';
-import { type SetTransactionOptions } from '@/lib/transaction.ts';
-import {
-    isTransactionPicturesEnabled,
-    getMapProvider
-} from '@/lib/server_settings.ts';
-import {
-    isSupportGetGeoLocationByClick
-} from '@/lib/map/index.ts';
+import {getCurrentUnixTime, getTimezoneOffsetMinutes} from '@/lib/datetime.ts';
+import {formatCoordinate} from '@/lib/coordinate.ts';
+import {generateRandomUUID} from '@/lib/misc.ts';
+import {getTransactionPrimaryCategoryName, getTransactionSecondaryCategoryName} from '@/lib/category.ts';
+import {type SetTransactionOptions} from '@/lib/transaction.ts';
+import {getMapProvider, isTransactionPicturesEnabled} from '@/lib/server_settings.ts';
+import {isSupportGetGeoLocationByClick} from '@/lib/map/index.ts';
 import logger from '@/lib/logger.ts';
 
 import {
+    mdiCheck,
     mdiDotsVertical,
     mdiEyeOffOutline,
     mdiEyeOutline,
-    mdiSwapHorizontal,
-    mdiMapMarkerOutline,
-    mdiCheck,
-    mdiMenuDown,
+    mdiFullscreen,
     mdiImagePlusOutline,
-    mdiTrashCanOutline,
-    mdiFullscreen
+    mdiMapMarkerOutline,
+    mdiMenuDown,
+    mdiSwapHorizontal,
+    mdiTrashCanOutline
 } from '@mdi/js';
 
 export interface TransactionEditOptions extends SetTransactionOptions {
@@ -634,6 +623,8 @@ const sourceAmountColor = computed<string | undefined>(() => {
         return 'income';
     } else if (transaction.value.type === TransactionType.Transfer) {
         return 'primary';
+    } else if (transaction.value.type === TransactionType.ModifyBalance) {
+        return 'primary';
     }
 
     return undefined;
@@ -734,6 +725,9 @@ function open(options: TransactionEditOptions): Promise<TransactionEditResponse 
     if (options.type &&
         options.type >= TransactionType.Income &&
         options.type <= TransactionType.Transfer) {
+        transaction.value.type = options.type;
+    } else if (options.type === TransactionType.ModifyBalance &&
+        props.type === TransactionEditPageType.Transaction) {
         transaction.value.type = options.type;
     }
 

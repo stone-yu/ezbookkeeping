@@ -229,7 +229,7 @@ export class Transaction implements TransactionInfoResponse {
     public toCreateRequest(clientSessionId: string): TransactionCreateRequest {
         return {
             type: this.type,
-            categoryId: this.getCategoryId(),
+            categoryId: this.type === TransactionType.ModifyBalance ? '0' : this.getCategoryId(),
             time: this.time,
             utcOffset: this.utcOffset,
             sourceAccountId: this.sourceAccountId,

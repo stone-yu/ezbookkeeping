@@ -1043,9 +1043,6 @@ export const useTransactionsStore = defineStore('transactions', () => {
                 transaction.type !== TransactionType.ModifyBalance) {
                 reject({ message: 'An error occurred' });
                 return;
-            } else if (!isEdit && transaction.type === TransactionType.ModifyBalance) {
-                reject({ message: 'An error occurred' });
-                return;
             }
 
             if (!isEdit) {

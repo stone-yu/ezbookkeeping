@@ -2251,15 +2251,6 @@ func (s *TransactionService) doCreateTransaction(c core.Context, database *datas
 
 	// Verify balance modification transaction and calculate real amount
 	if transaction.Type == models.TRANSACTION_DB_TYPE_MODIFY_BALANCE {
-		otherTransactionExists, err := sess.Cols("uid", "deleted", "account_id").Where("uid=? AND deleted=? AND account_id=?", transaction.Uid, false, sourceAccount.AccountId).Limit(1).Exist(&models.Transaction{})
-
-		if err != nil {
-			log.Errorf(c, "[transactions.doCreateTransaction] failed to get whether other transactions exist, because %s", err.Error())
-			return err
-		} else if otherTransactionExists {
-			return errs.ErrBalanceModificationTransactionCannotAddWhenNotEmpty
-		}
-
 		transaction.RelatedAccountId = transaction.AccountId
 		transaction.RelatedAccountAmount = transaction.Amount - sourceAccount.Balance
 	} else { // Not allow to add transaction before balance modification transaction
