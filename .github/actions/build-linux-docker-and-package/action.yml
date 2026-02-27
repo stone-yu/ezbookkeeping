@@ -79,32 +79,50 @@ runs:
         password: ${{ inputs.docker-password }}
 
     - name: Build docker for ${{ inputs.platform-name }}
-      id: bake
-      uses: docker/bake-action@v6
-      with:
-        files: |
-          ./docker-bake.hcl
-          cwd://${{ inputs.docker-bake-meta-file-path }}
-        source: .
-        targets: image
-        set: |
-          *.platform=${{ inputs.platform }}
-          *.tags=
-          *.args.RELEASE_BUILD=${{ inputs.release-build }}
-          *.args.BUILD_PIPELINE=1
-          *.args.BUILD_UNIXTIME=${{ inputs.build-unix-time }}
-          *.args.BUILD_DATE=${{ inputs.build-date }}
-          *.args.CHECK_3RD_API=${{ inputs.check-3rd-api }}
-          *.args.SKIP_TESTS=${{ inputs.skip-tests }}
-          *.output=type=image,push-by-digest=true,name-canonical=true,push=${{ inputs.docker-push }}
-          *.output+=type=local,dest=${{ runner.temp }}/package
+      id: build
+      shell: bash
+      run: |
+        docker buildx build \
+          --platform ${{ inputs.platform }} \
+          --build-arg RELEASE_BUILD=${{ inputs.release-build }} \
+          --build-arg BUILD_PIPELINE=1 \
+          --build-arg BUILD_UNIXTIME=${{ inputs.build-unix-time }} \
+          --build-arg BUILD_DATE=${{ inputs.build-date }} \
+          --build-arg CHECK_3RD_API=${{ inputs.check-3rd-api }} \
+          --build-arg SKIP_TESTS=${{ inputs.skip-tests }} \
+          --output type=local,dest=${{ runner.temp }}/package \
+          -f Dockerfile \
+          .
+
+    - name: Push docker for ${{ inputs.platform-name }}
+      id: push
+      if: ${{ inputs.docker-push }}
+      shell: bash
+      run: |
+        docker buildx build \
+          --platform ${{ inputs.platform }} \
+          --build-arg RELEASE_BUILD=${{ inputs.release-build }} \
+          --build-arg BUILD_PIPELINE=1 \
+          --build-arg BUILD_UNIXTIME=${{ inputs.build-unix-time }} \
+          --build-arg BUILD_DATE=${{ inputs.build-date }} \
+          --build-arg CHECK_3RD_API=${{ inputs.check-3rd-api }} \
+          --build-arg SKIP_TESTS=${{ inputs.skip-tests }} \
+          --provenance=false \
+          --push \
+          -f Dockerfile \
+          . \
+          --metadata-file ${{ runner.temp }}/metadata.json
+        digest=$(jq -r '.["containerimage.digest"] // empty' ${{ runner.temp }}/metadata.json)
+        echo "digest=${digest}" >> "$GITHUB_OUTPUT"
 
     - name: Export digests file for ${{ inputs.platform-name }}
       shell: bash
       run: |
-        digest="${{ fromJSON(steps.bake.outputs.metadata).image['containerimage.digest'] }}"
+        digest="${{ steps.push.outputs.digest }}"
         mkdir -p ${{ inputs.docker-bake-digests-file-path }}
-        touch "${{ inputs.docker-bake-digests-file-path }}/${digest#sha256:}"
+        if [ -n "$digest" ]; then
+          touch "${{ inputs.docker-bake-digests-file-path }}/${digest#sha256:}"
+        fi
 
     - name: Build package file for ${{ inputs.platform-name }}
       shell: bash
