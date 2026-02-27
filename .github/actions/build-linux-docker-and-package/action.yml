@@ -108,6 +108,7 @@ runs:
           --build-arg CHECK_3RD_API=${{ inputs.check-3rd-api }} \
           --build-arg SKIP_TESTS=${{ inputs.skip-tests }} \
           --provenance=false \
+          -t ${{ inputs.docker-image-name }}:${{ inputs.platform-name }} \
           --push \
           -f Dockerfile \
           . \
