@@ -89,6 +89,7 @@ runs:
         targets: image
         set: |
           *.platform=${{ inputs.platform }}
+          *.tags=
           *.args.RELEASE_BUILD=${{ inputs.release-build }}
           *.args.BUILD_PIPELINE=1
           *.args.BUILD_UNIXTIME=${{ inputs.build-unix-time }}
