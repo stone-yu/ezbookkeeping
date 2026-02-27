@@ -25,6 +25,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
+      - name: Debug DOCKER_IMAGE_NAME
+        run: |
+          echo "DOCKER_IMAGE_NAME='${{ vars.DOCKER_IMAGE_NAME }}'"
+
       - name: Docker meta
         id: meta
         uses: docker/metadata-action@v5
@@ -35,6 +39,11 @@ jobs:
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=raw,value=latest
+
+      - name: Debug bake file
+        run: |
+          echo "Bake file content:"
+          cat "${{ steps.meta.outputs.bake-file }}"
 
       - name: Set up variables
         id: variable
