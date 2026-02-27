@@ -51,8 +51,22 @@ runs:
         username: ${{ inputs.docker-username }}
         password: ${{ inputs.docker-password }}
 
+    - name: Debug tags
+      shell: bash
+      run: |
+        echo "docker-image-tags: ${{ inputs.docker-image-tags }}"
+        echo "docker-image-name: ${{ inputs.docker-image-name }}"
+        ls -la "${{ inputs.docker-bake-digests-file-path }}"
+
     - name: Create manifest and push
       shell: bash
       working-directory: ${{ inputs.docker-bake-digests-file-path }}
       run: |
-        docker buildx imagetools create $(echo "${{ inputs.docker-image-tags }}" | xargs -I {} echo -n " -t {}") $(printf '${{ inputs.docker-image-name }}@sha256:%s ' *)
+        # 将多行标签转换为 -t 参数
+        tags=""
+        while IFS= read -r tag; do
+          [ -n "$tag" ] && tags="$tags -t $tag"
+        done <<< "${{ inputs.docker-image-tags }}"
+
+        echo "Creating manifest with tags:$tags"
+        docker buildx imagetools create $tags $(printf '${{ inputs.docker-image-name }}@sha256:%s ' *)
