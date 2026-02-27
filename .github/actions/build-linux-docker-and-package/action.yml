@@ -88,7 +88,6 @@ runs:
         source: .
         targets: image
         set: |
-          *.tags=${{ inputs.docker-tags }}
           *.platform=${{ inputs.platform }}
           *.args.RELEASE_BUILD=${{ inputs.release-build }}
           *.args.BUILD_PIPELINE=1
