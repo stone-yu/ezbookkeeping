@@ -28,6 +28,9 @@ inputs:
   docker-image-name:
     required: true
     type: string
+  docker-tags:
+    required: true
+    type: string
   docker-username:
     required: false
     type: string
@@ -85,7 +88,7 @@ runs:
         source: .
         targets: image
         set: |
-          *.tags=${{ inputs.docker-image-name }}
+          *.tags=${{ inputs.docker-tags }}
           *.platform=${{ inputs.platform }}
           *.args.RELEASE_BUILD=${{ inputs.release-build }}
           *.args.BUILD_PIPELINE=1
