@@ -144,7 +144,7 @@ jobs:
           docker-bake-meta-artifact-name: ${{ needs.setup.outputs.ezbookkeeping-docker-bake-meta-artifact-name }}
           docker-bake-digests-file-path: ${{ needs.setup.outputs.ezbookkeeping-docker-digests-file-path }}
           docker-bake-digests-artifact-name-prefix: ${{ needs.setup.outputs.ezbookkeeping-docker-digests-artifact-name-prefix }}
-          docker-image-tags: ${{ needs.setup.outputs.docker-tags }}
+          docker-image-tags: latest
 
   build-windows-backend:
     needs:
